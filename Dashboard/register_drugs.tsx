@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import {
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -10,8 +11,26 @@ import {
     View,
 } from "react-native";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+
 export default function RegisterDrugsScreen() {
   const handleSubmit = () => alert("Drug Registered Successfully! 🎉");
+
+  const [drugImage, setDrugImage] = useState<string | null>(null);
+
+  const pickImage = async () => {
+    // Ask for permission (PHP equivalent: checking server upload limits/permissions)
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setDrugImage(result.assets[0].uri); // Save the path to state
+    }
+  };
 
   return (
     // We use flex: 1 here so it fills the 'contentArea' from the parent
@@ -38,6 +57,10 @@ export default function RegisterDrugsScreen() {
             <InputField label="Internal ID" placeholder="e.g. ADV-001" />
             <InputField label="Drug Brand Name" placeholder="e.g. Advil" />
             <InputField label="Scientific Name" placeholder="e.g. Ibuprofen" />
+            <InputField
+              label="Drug Category"
+              placeholder="e.g. Pain Reliever, Antibiotic"
+            />
             <InputField label="Unit" placeholder="e.g. PK, ST" />
 
             <View style={styles.row}>
@@ -74,7 +97,27 @@ export default function RegisterDrugsScreen() {
               label="Product Identity"
               placeholder="Drugs or Cosmotics"
             />
+            <Text style={styles.sectionLabel}>Drug Image</Text>
 
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              {drugImage ? (
+                <Image
+                  source={{ uri: drugImage }}
+                  style={styles.previewImage}
+                />
+              ) : (
+                <View style={styles.uploadPlaceholder}>
+                  <MaterialCommunityIcons
+                    name="camera-plus"
+                    size={40}
+                    color="#007AFF"
+                  />
+                  <Text style={styles.uploadText}>
+                    Tap to upload drug photo
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.submitButton}
               onPress={handleSubmit}
@@ -175,5 +218,31 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",
+  },
+  imagePicker: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: "#f1f3f5",
+    borderWidth: 2,
+    borderColor: "#e9ecef",
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    marginBottom: 20,
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  uploadPlaceholder: {
+    alignItems: "center",
+  },
+  uploadText: {
+    marginTop: 8,
+    color: "#007AFF",
+    fontWeight: "600",
   },
 });

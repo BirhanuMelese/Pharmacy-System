@@ -55,7 +55,45 @@ export default function HomeScreen() {
           />
           <NavButton
             icon="flask-outline"
-            label="Scientific Name"
+            label="Add New Batch Number"
+            isCollapsed={isCollapsed}
+          />
+          <NavButton
+            icon="flask-outline"
+            label="Update Price"
+            isCollapsed={isCollapsed}
+          />
+          <NavButton
+            icon="flask-outline"
+            label="Add Drug Category"
+            isCollapsed={isCollapsed}
+          />
+          <NavButton
+            icon="flask-outline"
+            label="Add Scientific Name"
+            isCollapsed={isCollapsed}
+          />
+
+          <NavButton
+            icon="flask-outline"
+            label="Add Unit"
+            isCollapsed={isCollapsed}
+          />
+
+          <NavButton
+            icon="flask-outline"
+            label="Add Origin"
+            isCollapsed={isCollapsed}
+          />
+
+          <NavButton
+            icon="flask-outline"
+            label="Add Supplier"
+            isCollapsed={isCollapsed}
+          />
+          <NavButton
+            icon="flask-outline"
+            label="Add Product Identity"
             isCollapsed={isCollapsed}
           />
         </View>
