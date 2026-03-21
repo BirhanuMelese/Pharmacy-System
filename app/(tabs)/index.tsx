@@ -1,3 +1,4 @@
+import RegisterDrugsScreen from "@/Dashboard/register_drugs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SearchBar } from "@rneui/base";
 import React, { useState } from "react";
@@ -6,6 +7,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<"dashboard" | "register_drugs">(
+    "dashboard",
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -31,7 +36,7 @@ export default function HomeScreen() {
                 isCollapsed && { opacity: 0, height: 0 },
               ]}
             >
-              MED-HUB
+              Pharmacy Admin
             </Text>
           </View>
 
@@ -40,11 +45,13 @@ export default function HomeScreen() {
             label="Dashboard"
             active
             isCollapsed={isCollapsed}
+            onPress={() => setActiveTab("dashboard")}
           />
           <NavButton
             icon="pill"
-            label="Register Medicine"
+            label="Register Drugs"
             isCollapsed={isCollapsed}
+            onPress={() => setActiveTab("register_drugs")}
           />
           <NavButton
             icon="flask-outline"
@@ -69,9 +76,13 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.contentArea}>
-            <Text style={styles.welcomeText}>
-              {isCollapsed ? "Dashboard" : "Welcome back, Admin"}
-            </Text>
+            {activeTab === "dashboard" && (
+              <Text style={styles.welcomeText}>
+                {isCollapsed ? "Dashboard" : "Welcome back, Admin"}
+              </Text>
+            )}
+
+            {activeTab === "register_drugs" && <RegisterDrugsScreen />}
           </View>
         </View>
       </View>
@@ -85,6 +96,7 @@ type NavButtonProps = {
   label: string;
   active?: boolean;
   isCollapsed: boolean;
+  onPress?: () => void;
 };
 
 const NavButton: React.FC<NavButtonProps> = ({
@@ -92,8 +104,10 @@ const NavButton: React.FC<NavButtonProps> = ({
   label,
   active = false,
   isCollapsed,
+  onPress,
 }) => (
   <Pressable
+    onPress={onPress}
     style={({ hovered }) => [
       styles.navItem,
       hovered && styles.navItemHover,
@@ -116,7 +130,7 @@ const NavButton: React.FC<NavButtonProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F9FA" },
-  container: { flex: 1, flexDirection: "row" },
+  container: { flex: 1, flexDirection: "row", padding: 0 },
   sidebar: {
     backgroundColor: "#FFFFFF",
     borderRightWidth: 1,
@@ -181,6 +195,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#2196F3",
   },
-  contentArea: { padding: 20 },
+  contentArea: { padding: 20, flex: 1 },
   welcomeText: { fontSize: 22, fontWeight: "bold", color: "#333" },
 });
