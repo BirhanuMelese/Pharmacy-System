@@ -1,101 +1,142 @@
-import RegisterDrugsScreen from "@/Dashboard/register_drugs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SearchBar } from "@rneui/base";
 import React, { useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+// Import your screen component
+import AddDrugsCategories from "@/Dashboard/add_drugs_categories";
+
+import AddProductIdentity from "@/Dashboard/add_product_identity";
+import AddScientificName from "@/Dashboard/add_scientific_name";
+import AddSuppliers from "@/Dashboard/add_suppliers";
+import AddDrugsUnit from "@/Dashboard/add_unit";
+import RegisterDrugsScreen from "@/Dashboard/register_drugs";
+import UpdatePrice from "@/Dashboard/update_price";
 
 export default function HomeScreen() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "register_drugs">(
-    "dashboard",
-  );
+  // Added "dashboard" and "register_drugs" to track view
+  const [activeTab, setActiveTab] = useState<
+    | "dashboard"
+    | "update_price"
+    | "register_drugs"
+    | "add_drugs_categories"
+    | "add_drugs_unit"
+    | "add_suppliers"
+    | "add_product_identity"
+    | "add_scientific_name"
+  >("dashboard");
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* SIDEBAR */}
-        <View style={[styles.sidebar, { width: isCollapsed ? 80 : 260 }]}>
-          {/* TOGGLE BUTTON */}
-          <Pressable
-            onPress={() => setIsCollapsed(!isCollapsed)}
-            style={styles.toggleBtn}
-          >
-            <MaterialCommunityIcons
-              name={isCollapsed ? "menu-open" : "menu"}
-              size={24}
-              color="#2196F3"
-            />
-          </Pressable>
-
-          <View style={styles.logoContainer}>
-            <Text
-              style={[
-                styles.logoText,
-                isCollapsed && { opacity: 0, height: 0 },
-              ]}
+        <View style={[styles.sidebar, { width: isCollapsed ? 80 : 280 }]}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* TOGGLE BUTTON */}
+            <Pressable
+              onPress={() => setIsCollapsed(!isCollapsed)}
+              style={styles.toggleBtn}
             >
-              Pharmacy Admin
-            </Text>
-          </View>
+              <MaterialCommunityIcons
+                name={isCollapsed ? "menu-open" : "menu"}
+                size={24}
+                color="#2196F3"
+              />
+            </Pressable>
 
-          <NavButton
-            icon="view-dashboard-outline"
-            label="Dashboard"
-            active
-            isCollapsed={isCollapsed}
-            onPress={() => setActiveTab("dashboard")}
-          />
-          <NavButton
-            icon="pill"
-            label="Register Drugs"
-            isCollapsed={isCollapsed}
-            onPress={() => setActiveTab("register_drugs")}
-          />
-          <NavButton
-            icon="flask-outline"
-            label="Add New Batch Number"
-            isCollapsed={isCollapsed}
-          />
-          <NavButton
-            icon="flask-outline"
-            label="Update Price"
-            isCollapsed={isCollapsed}
-          />
-          <NavButton
-            icon="flask-outline"
-            label="Add Drug Category"
-            isCollapsed={isCollapsed}
-          />
-          <NavButton
-            icon="flask-outline"
-            label="Add Scientific Name"
-            isCollapsed={isCollapsed}
-          />
+            <View style={styles.logoContainer}>
+              <Text
+                style={[
+                  styles.logoText,
+                  isCollapsed && { opacity: 0, height: 0 },
+                ]}
+              >
+                Pharmacy Admin
+              </Text>
+            </View>
 
-          <NavButton
-            icon="flask-outline"
-            label="Add Unit"
-            isCollapsed={isCollapsed}
-          />
+            {/* MAIN BUTTONS */}
+            <NavButton
+              icon="view-dashboard-outline"
+              label="Dashboard"
+              active={activeTab === "dashboard"}
+              isCollapsed={isCollapsed}
+              onPress={() => setActiveTab("dashboard")}
+            />
 
-          <NavButton
-            icon="flask-outline"
-            label="Add Origin"
-            isCollapsed={isCollapsed}
-          />
+            <NavButton
+              label="Registration"
+              icon={isRegistrationOpen ? "chevron-up" : "chevron-down"}
+              onPress={() => setIsRegistrationOpen(!isRegistrationOpen)}
+              active={activeTab === "register_drugs"}
+              isCollapsed={isCollapsed}
+            />
 
-          <NavButton
-            icon="flask-outline"
-            label="Add Supplier"
-            isCollapsed={isCollapsed}
-          />
-          <NavButton
-            icon="flask-outline"
-            label="Add Product Identity"
-            isCollapsed={isCollapsed}
-          />
+            {/* DROPDOWN ITEMS */}
+            {isRegistrationOpen && !isCollapsed && (
+              <View style={styles.dropdownContainer}>
+                <NavButton
+                  icon="pill"
+                  label="Register Drugs"
+                  active={activeTab === "register_drugs"}
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("register_drugs")}
+                />
+                <NavButton
+                  icon="flask-outline"
+                  label="New Batch"
+                  isCollapsed={isCollapsed}
+                />
+                <NavButton
+                  icon="currency-usd"
+                  label="Update Price"
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("update_price")}
+                />
+                <NavButton
+                  icon="tag-outline"
+                  label="Categories"
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("add_drugs_categories")}
+                />
+                <NavButton
+                  icon="test-tube"
+                  label="Scientific Name"
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("add_scientific_name")}
+                />
+                <NavButton
+                  icon="scale-balance"
+                  label="Units"
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("add_drugs_unit")}
+                />
+
+                <NavButton
+                  icon="truck-delivery"
+                  label="Suppliers"
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("add_suppliers")}
+                />
+                <NavButton
+                  icon="barcode-scan"
+                  label="Product Identity"
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab("add_product_identity")}
+                />
+              </View>
+            )}
+          </ScrollView>
         </View>
 
         {/* MAIN CONTENT */}
@@ -114,13 +155,23 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.contentArea}>
+            {/* CONDITIONAL RENDERING (The PHP 'include' logic) */}
             {activeTab === "dashboard" && (
-              <Text style={styles.welcomeText}>
-                {isCollapsed ? "Dashboard" : "Welcome back, Admin"}
-              </Text>
+              <View>
+                <Text style={styles.welcomeText}>
+                  {isCollapsed ? "Dashboard" : "Welcome back, Admin"}
+                </Text>
+              </View>
             )}
 
             {activeTab === "register_drugs" && <RegisterDrugsScreen />}
+            {activeTab === "update_price" && <UpdatePrice />}
+            {activeTab === "add_drugs_categories" && <AddDrugsCategories />}
+            {activeTab === "add_drugs_unit" && <AddDrugsUnit />}
+
+            {activeTab === "add_suppliers" && <AddSuppliers />}
+            {activeTab === "add_product_identity" && <AddProductIdentity />}
+            {activeTab === "add_scientific_name" && <AddScientificName />}
           </View>
         </View>
       </View>
@@ -128,7 +179,7 @@ export default function HomeScreen() {
   );
 }
 
-// Updated NavButton to handle Collapsed State
+// --- NAV BUTTON COMPONENT ---
 type NavButtonProps = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   label: string;
@@ -140,22 +191,22 @@ type NavButtonProps = {
 const NavButton: React.FC<NavButtonProps> = ({
   icon,
   label,
-  active = false,
+  active,
   isCollapsed,
   onPress,
 }) => (
   <Pressable
     onPress={onPress}
-    style={({ hovered }) => [
+    style={({ pressed }) => [
       styles.navItem,
-      hovered && styles.navItemHover,
       active && styles.navItemActive,
+      pressed && { opacity: 0.7 },
       isCollapsed && { justifyContent: "center", paddingHorizontal: 0 },
     ]}
   >
     <MaterialCommunityIcons
       name={icon}
-      size={24}
+      size={22}
       color={active ? "#2196F3" : "#666"}
     />
     {!isCollapsed && (
@@ -168,44 +219,34 @@ const NavButton: React.FC<NavButtonProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F9FA" },
-  container: { flex: 1, flexDirection: "row", padding: 0 },
+  container: { flex: 1, flexDirection: "row" },
   sidebar: {
     backgroundColor: "#FFFFFF",
     borderRightWidth: 1,
     borderRightColor: "#E0E0E0",
     paddingTop: 10,
     paddingHorizontal: 12,
-    // Note: for smooth animation on web, consider LayoutAnimation or CSS transitions
   },
-  toggleBtn: {
-    alignSelf: "flex-end",
-    padding: 10,
+  dropdownContainer: {
+    marginLeft: 15,
+    borderLeftWidth: 1,
+    borderLeftColor: "#E0E0E0",
+    paddingLeft: 10,
+    marginTop: -5,
     marginBottom: 10,
   },
-  logoContainer: {
-    paddingBottom: 20,
-    alignItems: "center",
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2196F3",
-  },
+  toggleBtn: { alignSelf: "flex-end", padding: 10 },
+  logoContainer: { paddingBottom: 20, alignItems: "center" },
+  logoText: { fontSize: 18, fontWeight: "bold", color: "#2196F3" },
   navItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderRadius: 10,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  navItemHover: { backgroundColor: "#F0F7FF" },
   navItemActive: { backgroundColor: "#E3F2FD" },
-  navLabel: {
-    marginLeft: 12,
-    fontSize: 15,
-    color: "#555",
-    fontWeight: "500",
-  },
+  navLabel: { marginLeft: 12, fontSize: 14, color: "#555", fontWeight: "500" },
   navLabelActive: { color: "#2196F3", fontWeight: "600" },
   mainContent: { flex: 1 },
   topBar: {
@@ -226,13 +267,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   searchInput: { backgroundColor: "#F1F3F4", borderRadius: 10, height: 35 },
-  profileImage: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-    borderWidth: 1.5,
-    borderColor: "#2196F3",
-  },
+  profileImage: { width: 35, height: 35, borderRadius: 17.5 },
   contentArea: { padding: 20, flex: 1 },
   welcomeText: { fontSize: 22, fontWeight: "bold", color: "#333" },
 });
