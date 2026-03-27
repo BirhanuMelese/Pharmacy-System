@@ -10,31 +10,38 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-// Import your screen component
-import AddDrugsCategories from "@/Dashboard/add_drugs_categories";
 
-import AddProductIdentity from "@/Dashboard/add_product_identity";
-import AddScientificName from "@/Dashboard/add_scientific_name";
-import AddSuppliers from "@/Dashboard/add_suppliers";
-import AddDrugsUnit from "@/Dashboard/add_unit";
+// Import your screen components
+import InventoryGridScreen from "@/Dashboard/InventoryGridScreen";
 import RegisterDrugsScreen from "@/Dashboard/register_drugs";
-import UpdatePrice from "@/Dashboard/update_price";
+import AddDosageForm from "../Dashboard/add_dosage_form"; // 1. Import new component
+import AddDrugsCategories from "../Dashboard/add_drugs_categories";
+import AddProductIdentity from "../Dashboard/add_product_identity";
+import AddScientificName from "../Dashboard/add_scientific_name";
+import AddSuppliers from "../Dashboard/add_suppliers";
+import AddDrugsUnit from "../Dashboard/add_unit";
+import UpdatePrice from "../Dashboard/update_price";
 
 export default function HomeScreen() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
 
-  // Added "dashboard" and "register_drugs" to track view
-  const [activeTab, setActiveTab] = useState<
-    | "dashboard"
-    | "update_price"
-    | "register_drugs"
-    | "add_drugs_categories"
-    | "add_drugs_unit"
-    | "add_suppliers"
-    | "add_product_identity"
-    | "add_scientific_name"
-  >("dashboard");
+  // 2. Added "add_dosage_form" to the type definition
+  const [activeTab, setActiveTab] = useState<{
+    tab:
+      | "dashboard"
+      | "update_price"
+      | "register_drugs"
+      | "inventory"
+      | "add_drugs_categories"
+      | "add_drugs_unit"
+      | "add_dosage_form" // Added here
+      | "add_suppliers"
+      | "add_product_identity"
+      | "add_scientific_name";
+    editId?: string;
+    batchNo?: string;
+  }>({ tab: "dashboard" });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -69,16 +76,16 @@ export default function HomeScreen() {
             <NavButton
               icon="view-dashboard-outline"
               label="Dashboard"
-              active={activeTab === "dashboard"}
+              active={activeTab.tab === "dashboard"}
               isCollapsed={isCollapsed}
-              onPress={() => setActiveTab("dashboard")}
+              onPress={() => setActiveTab({ tab: "dashboard" })}
             />
 
             <NavButton
               label="Registration"
               icon={isRegistrationOpen ? "chevron-up" : "chevron-down"}
               onPress={() => setIsRegistrationOpen(!isRegistrationOpen)}
-              active={activeTab === "register_drugs"}
+              active={activeTab.tab === "register_drugs"}
               isCollapsed={isCollapsed}
             />
 
@@ -88,9 +95,9 @@ export default function HomeScreen() {
                 <NavButton
                   icon="pill"
                   label="Register Drugs"
-                  active={activeTab === "register_drugs"}
+                  active={activeTab.tab === "register_drugs"}
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("register_drugs")}
+                  onPress={() => setActiveTab({ tab: "register_drugs" })}
                 />
                 <NavButton
                   icon="flask-outline"
@@ -101,38 +108,48 @@ export default function HomeScreen() {
                   icon="currency-usd"
                   label="Update Price"
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("update_price")}
+                  onPress={() => setActiveTab({ tab: "update_price" })}
                 />
                 <NavButton
                   icon="tag-outline"
                   label="Categories"
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("add_drugs_categories")}
+                  onPress={() => setActiveTab({ tab: "add_drugs_categories" })}
                 />
+
+                {/* 3. Added Dosage Form NavButton */}
+                <NavButton
+                  icon="beaker-outline"
+                  label="Dosage Forms"
+                  active={activeTab.tab === "add_dosage_form"}
+                  isCollapsed={isCollapsed}
+                  onPress={() => setActiveTab({ tab: "add_dosage_form" })}
+                />
+
                 <NavButton
                   icon="test-tube"
                   label="Scientific Name"
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("add_scientific_name")}
+                  onPress={() => setActiveTab({ tab: "add_scientific_name" })}
                 />
                 <NavButton
                   icon="scale-balance"
                   label="Units"
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("add_drugs_unit")}
+                  onPress={() => setActiveTab({ tab: "add_drugs_unit" })}
                 />
 
                 <NavButton
                   icon="truck-delivery"
                   label="Suppliers"
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("add_suppliers")}
+                  onPress={() => setActiveTab({ tab: "add_suppliers" })}
                 />
                 <NavButton
                   icon="barcode-scan"
                   label="Product Identity"
                   isCollapsed={isCollapsed}
-                  onPress={() => setActiveTab("add_product_identity")}
+                  onPress={() => setActiveTab({ tab: "add_product_identity" })}
                 />
               </View>
             )}
@@ -155,8 +172,8 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.contentArea}>
-            {/* CONDITIONAL RENDERING (The PHP 'include' logic) */}
-            {activeTab === "dashboard" && (
+            {/* CONDITIONAL RENDERING */}
+            {activeTab.tab === "dashboard" && (
               <View>
                 <Text style={styles.welcomeText}>
                   {isCollapsed ? "Dashboard" : "Welcome back, Admin"}
@@ -164,14 +181,28 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {activeTab === "register_drugs" && <RegisterDrugsScreen />}
-            {activeTab === "update_price" && <UpdatePrice />}
-            {activeTab === "add_drugs_categories" && <AddDrugsCategories />}
-            {activeTab === "add_drugs_unit" && <AddDrugsUnit />}
+            {activeTab.tab === "register_drugs" && (
+              <RegisterDrugsScreen
+                setActiveTab={setActiveTab}
+                editId={activeTab.editId}
+                batchNo={activeTab.batchNo}
+              />
+            )}
+            {activeTab.tab === "inventory" && (
+              <InventoryGridScreen setActiveTab={setActiveTab} />
+            )}
+            {activeTab.tab === "update_price" && <UpdatePrice />}
+            {activeTab.tab === "add_drugs_categories" && <AddDrugsCategories />}
+            {activeTab.tab === "add_drugs_unit" && <AddDrugsUnit />}
 
-            {activeTab === "add_suppliers" && <AddSuppliers />}
-            {activeTab === "add_product_identity" && <AddProductIdentity />}
-            {activeTab === "add_scientific_name" && <AddScientificName />}
+            {/* 4. Added new screen component to content area */}
+            {activeTab.tab === "add_dosage_form" && (
+              <AddDosageForm setActiveTab={setActiveTab} />
+            )}
+
+            {activeTab.tab === "add_suppliers" && <AddSuppliers />}
+            {activeTab.tab === "add_product_identity" && <AddProductIdentity />}
+            {activeTab.tab === "add_scientific_name" && <AddScientificName />}
           </View>
         </View>
       </View>

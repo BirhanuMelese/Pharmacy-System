@@ -1,22 +1,41 @@
 import { supabase } from "@/src/supabaseClient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-export default function InventoryGridScreen() {
-  const router = useRouter();
+export default function InventoryGridScreen({
+  setActiveTab,
+}: {
+  setActiveTab: React.Dispatch<
+    React.SetStateAction<{
+      tab:
+        | "register_drugs"
+        | "inventory"
+        | "dashboard"
+        | "update_price"
+        | "add_drugs_categories"
+        | "add_drugs_unit"
+        | "add_suppliers"
+        | "add_product_identity"
+        | "add_scientific_name";
+      editId?: string;
+      batchNo?: string;
+    }>
+  >;
+}) {
   const [drugs, setDrugs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -25,20 +44,38 @@ export default function InventoryGridScreen() {
 
   const fetchInventory = async () => {
     setLoading(true);
+    // Removed .order("created_at") to prevent the error
     const { data, error } = await supabase
       .from("Drugs_Registration")
-      .select(" *, Drug_category(Drug_category), Batch_number");
+      .select("*")
+      .order("id", { ascending: false }); // Sort by ID instead
 
     if (!error && data) {
       setDrugs(data);
     } else if (error) {
       console.error("Fetch error:", error.message);
+      // Fallback: fetch without any ordering if ID also fails
+      const { data: retryData } = await supabase
+        .from("Drugs_Registration")
+        .select("*");
+      if (retryData) setDrugs(retryData);
     }
     setLoading(false);
   };
 
-  const filteredDrugs = drugs.filter((item) =>
-    item.Drug_brand_name?.toLowerCase().includes(search.toLowerCase()),
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchInventory();
+    setRefreshing(false);
+  };
+
+  // Filter includes Brand Name, Scientific Name, Dosage, or Dosage Form
+  const filteredDrugs = drugs.filter(
+    (item) =>
+      item.Drug_brand_name?.toLowerCase().includes(search.toLowerCase()) ||
+      item.Scientific_name?.toLowerCase().includes(search.toLowerCase()) ||
+      item.dosage?.toLowerCase().includes(search.toLowerCase()) ||
+      item.dosage_form?.toLowerCase().includes(search.toLowerCase()),
   );
 
   const renderItem = ({ item }: { item: any }) => {
@@ -47,16 +84,17 @@ export default function InventoryGridScreen() {
           ?.publicUrl
       : null;
 
+    // Logic for Low Stock warning (less than 10)
+    const isLowStock = (parseInt(item.Quantity_per_unit) || 0) < 10;
+
     return (
       <TouchableOpacity
         style={styles.card}
         onPress={() =>
-          router.push({
-            pathname: "../Dashboard/register_drugs",
-            params: {
-              editId: item.id,
-              batchNo: item.Batch_number, // Sending composite key
-            },
+          setActiveTab({
+            tab: "register_drugs",
+            editId: item.id?.toString(),
+            batchNo: item.Batch_number,
           })
         }
       >
@@ -64,21 +102,43 @@ export default function InventoryGridScreen() {
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.drugImage} />
           ) : (
-            <MaterialCommunityIcons name="pill" size={40} color="#ccc" />
+            <View style={styles.placeholderIcon}>
+              <MaterialCommunityIcons name="pill" size={40} color="#ccc" />
+            </View>
+          )}
+          {isLowStock && (
+            <View style={styles.lowStockBadge}>
+              <Text style={styles.lowStockText}>LOW STOCK</Text>
+            </View>
           )}
         </View>
+
         <View style={styles.info}>
           <Text style={styles.brandName} numberOfLines={1}>
             {item.Drug_brand_name}
           </Text>
-          <Text style={styles.category}>
-            {item.Drug_category || "No Category"}
+
+          <Text style={styles.scientificName} numberOfLines={1}>
+            {item.Scientific_name || "Generic N/A"}
           </Text>
+
+          <Text style={styles.dosageText} numberOfLines={1}>
+            {item.dosage || ""} {item.dosage_form || ""}
+          </Text>
+
           <View style={styles.stockRow}>
-            <Text style={styles.qty}>Qty: {item.Quantity_per_unit || 0}</Text>
+            <Text style={[styles.qty, isLowStock && styles.lowStockColor]}>
+              Qty: {item.Quantity_per_unit || 0}
+            </Text>
             <Text style={styles.price}>{item.Price_per_unit} ETB</Text>
           </View>
-          <Text style={styles.batchText}>Batch: {item.Batch_number}</Text>
+
+          <View style={styles.footerRow}>
+            <Text style={styles.category} numberOfLines={1}>
+              {item.Drug_category || "General"}
+            </Text>
+            <Text style={styles.batchText}>B: {item.Batch_number}</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -87,10 +147,10 @@ export default function InventoryGridScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => setActiveTab({ tab: "dashboard" })}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>Inventory List</Text>
+        <Text style={styles.title}>Inventory Grid</Text>
         <TouchableOpacity onPress={fetchInventory}>
           <MaterialCommunityIcons name="refresh" size={24} color="#007AFF" />
         </TouchableOpacity>
@@ -99,14 +159,14 @@ export default function InventoryGridScreen() {
       <View style={styles.searchBar}>
         <MaterialCommunityIcons name="magnify" size={20} color="#999" />
         <TextInput
-          placeholder="Search by brand name..."
+          placeholder="Search inventory..."
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
         />
       </View>
 
-      {loading ? (
+      {loading && !refreshing ? (
         <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />
       ) : (
         <FlatList
@@ -116,8 +176,22 @@ export default function InventoryGridScreen() {
           numColumns={2}
           contentContainerStyle={styles.list}
           columnWrapperStyle={styles.columnWrapper}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+            />
+          }
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No medications found.</Text>
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons
+                name="clipboard-text-outline"
+                size={50}
+                color="#ccc"
+              />
+              <Text style={styles.emptyText}>No medications found.</Text>
+            </View>
           }
         />
       )}
@@ -131,8 +205,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 50,
+    paddingBottom: 15,
     backgroundColor: "#fff",
   },
   title: { fontSize: 20, fontWeight: "900" },
@@ -143,44 +218,85 @@ const styles = StyleSheet.create({
     margin: 15,
     paddingHorizontal: 15,
     borderRadius: 12,
-    height: 45,
+    height: 48,
     borderWidth: 1,
     borderColor: "#eee",
   },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
-  list: { padding: 10 },
+  list: { padding: 10, paddingBottom: 100 },
   columnWrapper: { justifyContent: "space-between" },
   card: {
     backgroundColor: "#fff",
     width: "48%",
-    borderRadius: 15,
+    borderRadius: 16,
     marginBottom: 15,
-    padding: 10,
+    padding: 8,
     elevation: 3,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 5,
   },
   imageContainer: {
-    height: 100,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
+    height: 110,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
     overflow: "hidden",
+    position: "relative",
   },
-  drugImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  info: { gap: 2 },
-  brandName: { fontWeight: "800", fontSize: 14, color: "#333" },
-  category: { fontSize: 11, color: "#007AFF", fontWeight: "600" },
+  drugImage: { width: "100%", height: "100%", resizeMode: "contain" },
+  placeholderIcon: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f2f5",
+  },
+  lowStockBadge: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    backgroundColor: "#FF3B30",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  lowStockText: { color: "#fff", fontSize: 8, fontWeight: "900" },
+  info: { gap: 1 },
+  brandName: { fontWeight: "900", fontSize: 14, color: "#1a1a1a" },
+  scientificName: { fontSize: 11, color: "#666", fontStyle: "italic" },
+  dosageText: {
+    fontSize: 12,
+    color: "#444",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  category: { fontSize: 10, color: "#007AFF", fontWeight: "700", flex: 1 },
   stockRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 5,
+    alignItems: "center",
+    marginVertical: 4,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    paddingTop: 4,
   },
-  qty: { fontSize: 11, color: "#666" },
-  price: { fontSize: 11, fontWeight: "700", color: "#28a745" },
-  batchText: { fontSize: 10, color: "#999", marginTop: 2 },
-  emptyText: { textAlign: "center", marginTop: 50, color: "#999" },
+  qty: { fontSize: 11, color: "#666", fontWeight: "700" },
+  lowStockColor: { color: "#FF3B30" },
+  price: { fontSize: 12, fontWeight: "800", color: "#28a745" },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  batchText: { fontSize: 9, color: "#bbb" },
+  emptyContainer: { alignItems: "center", marginTop: 100 },
+  emptyText: {
+    textAlign: "center",
+    marginTop: 10,
+    color: "#999",
+    fontSize: 15,
+  },
 });

@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { supabase } from "../src/supabaseClient";
+import { supabase } from "../../src/supabaseClient";
 
 // File Import Libraries
 import * as DocumentPicker from "expo-document-picker";

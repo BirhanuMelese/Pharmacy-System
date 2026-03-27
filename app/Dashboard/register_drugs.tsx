@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import { supabase } from "@/src/supabaseClient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { Dropdown } from "react-native-element-dropdown";
 
 export default function RegisterDrugsScreen({
@@ -42,29 +43,25 @@ export default function RegisterDrugsScreen({
   editId?: string;
   batchNo?: string;
 }) {
+  const router = useRouter();
+  // Get both parts of the primary key from props
   const { editId: propEditId, batchNo: propBatchNo } = { editId, batchNo };
 
-  // --- Dropdown Data States ---
   const [categories, setCategories] = useState<any[]>([]);
   const [scientificNames, setScientificNames] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [identities, setIdentities] = useState<any[]>([]);
-  const [dosageForms, setDosageForms] = useState<any[]>([]);
   const [countries, setCountries] = useState<any[]>([]);
 
-  // --- UI States ---
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [drugImage, setDrugImage] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // --- Form State ---
   const [form, setForm] = useState({
     brandName: "",
     scientificName: "",
-    dosage: "",
-    dosage_form: "",
     batchNumber: "",
     unit: "",
     category: "",
@@ -81,6 +78,7 @@ export default function RegisterDrugsScreen({
     const initialize = async () => {
       setLoading(true);
       await fetchDropdownData();
+      // Use both parts of the key to initialize edit mode
       if (propEditId && propBatchNo) {
         setIsEditMode(true);
         await fetchDrugForEditing(propEditId, propBatchNo);
@@ -88,8 +86,9 @@ export default function RegisterDrugsScreen({
       setLoading(false);
     };
     initialize();
-  }, [propEditId]);
+  }, [propEditId, propBatchNo]);
 
+  // --- CRUD: READ (Using Composite Key) ---
   const fetchDrugForEditing = async (id: string, batch: string) => {
     const { data, error } = await supabase
       .from("Drugs_Registration")
@@ -102,8 +101,6 @@ export default function RegisterDrugsScreen({
       setForm({
         brandName: data.Drug_brand_name || "",
         scientificName: data.Scientific_name || "",
-        dosage: data.dosage || "",
-        dosage_form: data.dosage_form || "",
         batchNumber: data.Batch_number || "",
         unit: data.Unit || "",
         category: data.Drug_category || "",
@@ -124,27 +121,36 @@ export default function RegisterDrugsScreen({
     }
   };
 
+  // --- CRUD: DELETE (Using Composite Key) ---
   const handleDelete = async () => {
-    Alert.alert("Delete Record", "Remove this item?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          const { error } = await supabase
-            .from("Drugs_Registration")
-            .delete()
-            .eq("id", propEditId)
-            .eq("Batch_number", propBatchNo);
-          if (!error) {
-            Alert.alert("Success", "Medication record deleted.");
-            setActiveTab({ tab: "inventory" });
-          }
+    Alert.alert(
+      "Delete Record",
+      "This action cannot be undone. Remove this item?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase
+              .from("Drugs_Registration")
+              .delete()
+              .eq("id", propEditId)
+              .eq("Batch_number", propBatchNo);
+
+            if (!error) {
+              Alert.alert("Success", "Medication record deleted.");
+              setActiveTab({ tab: "inventory" });
+            } else {
+              Alert.alert("Error", error.message);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
+  // --- CRUD: CREATE & UPDATE ---
   const handleSubmit = async () => {
     if (!form.brandName || !form.category || !form.quantity) {
       Alert.alert(
@@ -169,8 +175,6 @@ export default function RegisterDrugsScreen({
       const payload: any = {
         Drug_brand_name: form.brandName,
         Scientific_name: form.scientificName || null,
-        dosage: form.dosage || null,
-        dosage_form: form.dosage_form || null,
         Batch_number: form.batchNumber || null,
         Unit: form.unit || null,
         Drug_category: form.category,
@@ -188,8 +192,8 @@ export default function RegisterDrugsScreen({
         ? supabase
             .from("Drugs_Registration")
             .update(payload)
-            .eq("id", propEditId)
-            .eq("Batch_number", propBatchNo)
+            .eq("id", editId)
+            .eq("Batch_number", batchNo) // Use composite key for update
         : supabase.from("Drugs_Registration").insert([payload]);
 
       const { error } = await query;
@@ -200,6 +204,7 @@ export default function RegisterDrugsScreen({
         isEditMode ? "Inventory Updated!" : "Medication Registered!",
       );
       if (!isEditMode) resetForm();
+      else setActiveTab({ tab: "inventory" });
     } catch (err: any) {
       Alert.alert("Error", err.message);
     } finally {
@@ -211,8 +216,6 @@ export default function RegisterDrugsScreen({
     setForm({
       brandName: "",
       scientificName: "",
-      dosage: "",
-      dosage_form: "",
       batchNumber: "",
       unit: "",
       category: "",
@@ -235,27 +238,20 @@ export default function RegisterDrugsScreen({
         resUnits,
         resSuppliers,
         resIdentities,
-        resDosageForms,
         resCountries,
       ] = await Promise.all([
         supabase.from("Drugs_Categories").select("Categories"),
-        supabase
-          .from("Drugs_Scientific_Name")
-          .select("Scientific_Name, Categories"),
+        supabase.from("Drugs_Scientific_Name").select("Scientific_Name"),
         supabase.from("Drugs_Unit").select("Unit"),
         supabase.from("Drugs_Supplier").select("Supplier"),
         supabase.from("Drugs_Product_Identity").select("Product_Identity"),
-        supabase.from("Drugs_Dosage_Form").select("Dosage_Form"),
         fetch("https://restcountries.com/v3.1/all?fields=name"),
       ]);
-
       if (resCats.data) setCategories(resCats.data);
       if (resSci.data) setScientificNames(resSci.data);
       if (resUnits.data) setUnits(resUnits.data);
       if (resSuppliers.data) setSuppliers(resSuppliers.data);
       if (resIdentities.data) setIdentities(resIdentities.data);
-      if (resDosageForms.data) setDosageForms(resDosageForms.data);
-
       const countryJson = await resCountries.json();
       setCountries(
         countryJson
@@ -271,8 +267,8 @@ export default function RegisterDrugsScreen({
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
+      aspect: [1, 1],
+      quality: 0.5,
     });
     if (!result.canceled) setDrugImage(result.assets[0].uri);
   };
@@ -314,7 +310,6 @@ export default function RegisterDrugsScreen({
 
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Primary Information</Text>
-
             <InputField
               label="Brand Name"
               placeholder="e.g. Advil"
@@ -324,33 +319,6 @@ export default function RegisterDrugsScreen({
               }
             />
 
-            <View style={styles.row}>
-              <View style={{ flex: 1, marginRight: 10 }}>
-                <InputField
-                  label="Dosage"
-                  placeholder="e.g. 500mg"
-                  value={form.dosage}
-                  onChangeText={(txt: string) =>
-                    setForm({ ...form, dosage: txt })
-                  }
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <DropdownField
-                  label="Dosage Form"
-                  data={dosageForms}
-                  labelField="Dosage_Form"
-                  valueField="Dosage_Form"
-                  placeholder="Select Form"
-                  value={form.dosage_form}
-                  onChange={(item: any) =>
-                    setForm({ ...form, dosage_form: item.Dosage_Form })
-                  }
-                  icon="beaker-outline"
-                />
-              </View>
-            </View>
-
             <DropdownField
               label="Product Identity"
               data={identities}
@@ -358,27 +326,23 @@ export default function RegisterDrugsScreen({
               valueField="Product_Identity"
               placeholder="Select Identity Type"
               value={form.identity}
+              icon="fingerprint"
               onChange={(item: any) =>
                 setForm({ ...form, identity: item.Product_Identity })
               }
-              icon="fingerprint"
             />
 
             <DropdownField
-              label="Generic Name"
+              label="Scientific Name"
               data={scientificNames}
               labelField="Scientific_Name"
               valueField="Scientific_Name"
               placeholder="Molecule Name"
               value={form.scientificName}
-              onChange={(item: any) => {
-                setForm({
-                  ...form,
-                  scientificName: item.Scientific_Name,
-                  category: item.Categories || form.category,
-                });
-              }}
               icon="flask-outline"
+              onChange={(item: any) =>
+                setForm({ ...form, scientificName: item.Scientific_Name })
+              }
             />
 
             <View style={styles.row}>
@@ -390,11 +354,10 @@ export default function RegisterDrugsScreen({
                   valueField="Categories"
                   placeholder="Category"
                   value={form.category}
-                  disable={!!form.scientificName} // Locked if Generic Name is selected
+                  icon="tag-outline"
                   onChange={(item: any) =>
                     setForm({ ...form, category: item.Categories })
                   }
-                  icon="tag-outline"
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -405,10 +368,10 @@ export default function RegisterDrugsScreen({
                   valueField="Unit"
                   placeholder="Unit"
                   value={form.unit}
+                  icon="pill"
                   onChange={(item: any) =>
                     setForm({ ...form, unit: item.Unit })
                   }
-                  icon="pill"
                 />
               </View>
             </View>
@@ -422,7 +385,6 @@ export default function RegisterDrugsScreen({
                 setForm({ ...form, batchNumber: txt })
               }
             />
-
             <InputField
               label="Expiry Date"
               placeholder="YYYY-MM-DD"
@@ -439,10 +401,10 @@ export default function RegisterDrugsScreen({
               valueField="Supplier"
               placeholder="Source Supplier"
               value={form.supplier}
+              icon="truck-delivery-outline"
               onChange={(item: any) =>
                 setForm({ ...form, supplier: item.Supplier })
               }
-              icon="truck-delivery-outline"
             />
 
             <DropdownField
@@ -452,8 +414,8 @@ export default function RegisterDrugsScreen({
               valueField="value"
               placeholder="Origin"
               value={form.origin}
-              onChange={(item: any) => setForm({ ...form, origin: item.value })}
               icon="earth"
+              onChange={(item: any) => setForm({ ...form, origin: item.value })}
             />
 
             <View style={styles.row}>
@@ -481,7 +443,7 @@ export default function RegisterDrugsScreen({
 
             <InputField
               label="Additional Notes"
-              placeholder="Special storage conditions..."
+              placeholder="Special storage..."
               multiline
               numberOfLines={3}
               style={styles.textArea}
@@ -491,39 +453,21 @@ export default function RegisterDrugsScreen({
               }
             />
 
-            <Text style={styles.sectionLabel}>Product Image</Text>
-            <TouchableOpacity
-              style={[
-                styles.imagePicker,
-                drugImage ? styles.imagePickerActive : null,
-              ]}
-              onPress={pickImage}
-            >
+            <Text style={styles.sectionLabel}>Media</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
               {drugImage ? (
-                <View style={styles.imageWrapper}>
-                  <Image
-                    source={{ uri: drugImage }}
-                    style={styles.previewImage}
-                  />
-                  <View style={styles.changeImageOverlay}>
-                    <MaterialCommunityIcons
-                      name="camera-flip"
-                      size={20}
-                      color="#fff"
-                    />
-                    <Text style={styles.changeImageText}>Change Photo</Text>
-                  </View>
-                </View>
+                <Image
+                  source={{ uri: drugImage }}
+                  style={styles.previewImage}
+                />
               ) : (
                 <View style={styles.uploadPlaceholder}>
-                  <View style={styles.iconCircle}>
-                    <MaterialCommunityIcons
-                      name="cloud-upload"
-                      size={32}
-                      color="#007AFF"
-                    />
-                  </View>
-                  <Text style={styles.uploadTitle}>Upload Product Photo</Text>
+                  <MaterialCommunityIcons
+                    name="camera-plus"
+                    size={32}
+                    color="#007AFF"
+                  />
+                  <Text style={styles.uploadText}>Add Product Photo</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -565,19 +509,14 @@ export default function RegisterDrugsScreen({
   );
 }
 
-// --- Internal UI Components ---
-const DropdownField = ({ label, icon, disable, ...props }: any) => (
+const DropdownField = ({ label, icon, ...props }: any) => (
   <View style={styles.inputGroup}>
     <Text style={styles.label}>{label}</Text>
     <Dropdown
-      style={[
-        styles.dropdown,
-        disable && { backgroundColor: "#f1f3f5", opacity: 0.8 },
-      ]}
+      style={styles.dropdown}
       placeholderStyle={styles.placeholderStyle}
       selectedTextStyle={styles.selectedTextStyle}
-      search={!disable}
-      disable={disable}
+      search
       maxHeight={300}
       renderLeftIcon={() => (
         <MaterialCommunityIcons
@@ -684,50 +623,23 @@ const styles = StyleSheet.create({
   deleteBtnText: { color: "#FF3B30", fontWeight: "700", marginLeft: 8 },
   imagePicker: {
     width: "100%",
-    height: 200,
-    borderRadius: 16,
-    backgroundColor: "#f0f7ff",
-    borderWidth: 2,
-    borderColor: "#007AFF",
+    height: 160,
+    borderRadius: 14,
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#eee",
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
-    overflow: "hidden",
     marginBottom: 20,
+    overflow: "hidden",
   },
-  imagePickerActive: { borderStyle: "solid", backgroundColor: "#fff" },
-  imageWrapper: { width: "100%", height: "100%" },
-  previewImage: { width: "100%", height: "100%", resizeMode: "contain" },
-  changeImageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  changeImageText: {
-    color: "#fff",
-    fontSize: 12,
+  previewImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  uploadPlaceholder: { alignItems: "center" },
+  uploadText: {
+    marginTop: 8,
+    color: "#007AFF",
     fontWeight: "600",
-    marginLeft: 6,
-  },
-  iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-  },
-  uploadTitle: {
-    marginTop: 12,
-    color: "#1a1a1a",
-    fontWeight: "700",
-    fontSize: 16,
+    fontSize: 12,
   },
 });
